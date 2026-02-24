@@ -9,14 +9,15 @@
 body { margin:0; font-family:Arial; background:#0f172a; color:white; }
 header { padding:16px; font-size:20px; font-weight:bold; text-align:center; }
 .card { background:#1e293b; margin:12px; padding:14px; border-radius:14px; }
+select, input { width:100%; padding:6px; margin-top:6px; border-radius:6px; border:none; }
 button { background:#22c55e; border:none; padding:8px 12px; border-radius:8px; color:black; font-weight:bold; margin-top:8px;}
-input { width:100%; padding:6px; margin-top:6px; border-radius:6px; border:none; }
 .progress { height:12px; background:#334155; border-radius:6px; margin-top:10px; }
 .bar { height:12px; border-radius:6px; width:0%; transition:0.3s; }
-.status { font-size:18px; font-weight:bold; margin-top:10px; }
+.status { font-size:16px; font-weight:bold; margin-top:10px; }
 .green { color:#22c55e; }
 .yellow { color:#facc15; }
 .red { color:#ef4444; }
+.info { font-size:14px; margin-top:6px; color:#94a3b8; }
 </style>
 </head>
 <body>
@@ -24,15 +25,29 @@ input { width:100%; padding:6px; margin-top:6px; border-radius:6px; border:none;
 <header>Elbrus South 2026</header>
 
 <div class="card">
-<h3>Индекс готовности</h3>
+<label>Неделя</label>
+<select id="weekSelector" onchange="changeWeek(this.value)"></select>
+<div class="info" id="weekInfo"></div>
+</div>
+
+<div class="card">
+<h3>Индекс недели</h3>
 <p id="weekIndex">0%</p>
-<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="progress"><div class="bar" id="barWeek"></div></div>
+</div>
+
+<div class="card">
+<h3>Среднее 4 недели</h3>
+<p id="avgIndex">0%</p>
+<div class="progress"><div class="bar" id="barAvg"></div></div>
 <div class="status" id="statusText"></div>
 </div>
 
 <div id="days"></div>
 
 <script>
+
+const TOTAL_WEEKS = 27;
 const days = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 
 const Z2_MIN = 126;
@@ -40,53 +55,95 @@ const Z2_MAX = 134;
 const Z3_MIN = 143;
 const Z3_MAX = 151;
 
-function saveData() {
-  localStorage.setItem("elbrusData", JSON.stringify(data));
+let currentWeek = 1;
+
+function getWeekTarget(week){
+  let weight = 5;
+  let longDuration = "3:00";
+
+  if(week <= 9){ weight = 5; longDuration="3:00";}
+  else if(week <= 15){ weight = 6; longDuration="3:30";}
+  else if(week <= 19){ weight = 7; longDuration="4:00";}
+  else if(week <= 23){ weight = 8; longDuration="4:30";}
+  else if(week <= 25){ weight = 9; longDuration="5:00";}
+  else if(week == 26){ weight = 9; longDuration="6:30";}
+  else { weight = 6; longDuration="3:00"; }
+
+  return {weight,longDuration};
 }
 
-function loadData() {
-  return JSON.parse(localStorage.getItem("elbrusData")) || 
-  days.map(()=>({done:false, avg:0, max:0, weight:0}));
+function saveData(){
+  localStorage.setItem("elbrusData", JSON.stringify(allData));
 }
 
-let data = loadData();
+function loadData(){
+  return JSON.parse(localStorage.getItem("elbrusData")) || {};
+}
+
+let allData = loadData();
+
+function getWeekData(week){
+  if(!allData[week]){
+    allData[week] = days.map(()=>({done:false, avg:0, max:0, weight:0}));
+  }
+  return allData[week];
+}
 
 function pulseScore(dayIndex, avgPulse){
   if(avgPulse === 0) return 0;
 
-  if(dayIndex === 3){ // интервалы (Чт)
+  if(dayIndex === 3){
     if(avgPulse >= Z3_MIN && avgPulse <= Z3_MAX) return 100;
   } else {
     if(avgPulse >= Z2_MIN && avgPulse <= Z2_MAX) return 100;
   }
 
-  if(Math.abs(avgPulse - Z2_MIN) <= 5 || Math.abs(avgPulse - Z3_MIN) <= 5)
-    return 70;
-
-  return 40;
+  return 50;
 }
 
-function calculateIndex(){
+function calculateWeekIndex(week){
+  let data = getWeekData(week);
   let total = 0;
+  let longDone = 0;
 
   data.forEach((d,i)=>{
     let score = 0;
 
     if(d.done) score += 50;
-
     score += pulseScore(i, d.avg) * 0.3;
 
-    if(i === 5 && d.done) score += 20; // суббота бонус
+    if(i === 5 && d.done) longDone = 1;
 
     total += score;
   });
 
-  return Math.round(total / 7);
+  let base = Math.round(total / 7);
+  if(longDone) base += 5;
+
+  return Math.min(base,100);
 }
 
-function render() {
+function calculate4WeekAverage(){
+  let start = Math.max(1, currentWeek - 3);
+  let sum = 0;
+  let count = 0;
+
+  for(let w=start; w<=currentWeek; w++){
+    sum += calculateWeekIndex(w);
+    count++;
+  }
+
+  return Math.round(sum / count);
+}
+
+function render(){
+  let data = getWeekData(currentWeek);
   let container = document.getElementById("days");
   container.innerHTML = "";
+
+  let target = getWeekTarget(currentWeek);
+  document.getElementById("weekInfo").innerText =
+    "Целевой вес: " + target.weight + " кг | Длительный: " + target.longDuration + " ч";
 
   data.forEach((d,i)=>{
     container.innerHTML += `
@@ -96,53 +153,74 @@ function render() {
       <input type="number" value="${d.avg}" onchange="update(${i},'avg',this.value)">
       <label>Макс пульс</label>
       <input type="number" value="${d.max}" onchange="update(${i},'max',this.value)">
-      <label>Вес рюкзака (кг)</label>
+      <label>Фактический вес рюкзака</label>
       <input type="number" value="${d.weight}" onchange="update(${i},'weight',this.value)">
       <button onclick="toggle(${i})">${d.done?'Выполнено':'Отметить'}</button>
     </div>`;
   });
 
-  let index = calculateIndex();
+  let weekIndex = calculateWeekIndex(currentWeek);
+  document.getElementById("weekIndex").innerText = weekIndex + "%";
+  document.getElementById("barWeek").style.width = weekIndex + "%";
 
-  document.getElementById("weekIndex").innerText = index + "%";
-
-  let bar = document.getElementById("bar");
-  bar.style.width = index + "%";
+  let avgIndex = calculate4WeekAverage();
+  document.getElementById("avgIndex").innerText = avgIndex + "%";
+  document.getElementById("barAvg").style.width = avgIndex + "%";
 
   let status = document.getElementById("statusText");
 
-  if(index >= 85){
-    bar.style.background = "#22c55e";
-    status.innerText = "ГОТОВНОСТЬ ВЫСОКАЯ";
+  if(avgIndex >= 85){
+    document.getElementById("barAvg").style.background = "#22c55e";
+    status.innerText = "ГОТОВ К НАГРУЗКЕ";
     status.className = "status green";
-  } else if(index >= 75){
-    bar.style.background = "#facc15";
-    status.innerText = "ГОТОВНОСТЬ СРЕДНЯЯ";
+  } else if(avgIndex >= 75){
+    document.getElementById("barAvg").style.background = "#facc15";
+    status.innerText = "БЛИЗКО К ГОТОВНОСТИ";
     status.className = "status yellow";
   } else {
-    bar.style.background = "#ef4444";
-    status.innerText = "ТРЕБУЕТСЯ ДОРАБОТКА";
+    document.getElementById("barAvg").style.background = "#ef4444";
+    status.innerText = "ТРЕБУЕТСЯ СТАБИЛЬНОСТЬ";
     status.className = "status red";
   }
 }
 
 function update(i,key,value){
+  let data = getWeekData(currentWeek);
   data[i][key] = Number(value);
   saveData();
   render();
 }
 
 function toggle(i){
+  let data = getWeekData(currentWeek);
   data[i].done = !data[i].done;
   saveData();
   render();
 }
 
-render();
+function changeWeek(week){
+  currentWeek = Number(week);
+  render();
+}
+
+function init(){
+  let selector = document.getElementById("weekSelector");
+  for(let i=1;i<=TOTAL_WEEKS;i++){
+    let option = document.createElement("option");
+    option.value = i;
+    option.text = "Неделя " + i;
+    selector.appendChild(option);
+  }
+  selector.value = currentWeek;
+  render();
+}
+
+init();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
 }
+
 </script>
 
 </body>
