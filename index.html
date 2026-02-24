@@ -112,7 +112,7 @@ textarea {
 let currentScreen = "week";
 let currentDay = null;
 let currentExercise = null;
-
+localStorage.removeItem("elbrusWeek1");
 let weekData = JSON.parse(localStorage.getItem("elbrusWeek1")) || {
   "Пн": [
     {
