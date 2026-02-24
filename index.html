@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Elbrus Training</title>
 <style>
+  html {
+  touch-action: manipulation;
+}
 * {
   box-sizing: border-box;
 }
@@ -227,7 +230,7 @@ function renderWeek(screen) {
     card.className = "card";
 
     const btn = document.createElement("button");
-    btn.innerText = `${day}   ${percent}%`;
+    btn.innerText = day;
     btn.onclick = () => {
       currentDay = day;
       currentScreen = "day";
@@ -451,6 +454,8 @@ function renderExercise(screen) {
 render();
 
 </script>
-
+document.addEventListener("dblclick", function(e) {
+  e.preventDefault();
+});
 </body>
 </html>
