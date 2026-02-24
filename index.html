@@ -116,23 +116,52 @@ let currentExercise = null;
 let weekData = JSON.parse(localStorage.getItem("elbrusWeek1")) || {
   "Пн": [
     {
-      name: "Степ-апы",
-      technique: "Стопа полностью на опоре. Толчок пяткой. Колено не заваливается внутрь.",
-      avg: "",
-      max: "",
-      comment: "",
-      done: false
+      block: "Разминка",
+      name: "Суставная мобилизация",
+      volume: "5–7 мин",
+      zone: "Без зоны",
+      technique: "Круговые движения голеностоп, колено, таз, плечи. Без рывков.",
+      avg: "", max: "", comment: "", done: false
     },
     {
+      block: "Основная часть",
+      name: "Степ-апы",
+      volume: "4×15",
+      zone: "Z2",
+      technique: "Стопа полностью на опоре. Толчок пяткой. Колено стабильно.",
+      avg: "", max: "", comment: "", done: false
+    },
+    {
+      block: "Основная часть",
+      name: "Болгарские выпады",
+      volume: "3×12",
+      zone: "Z2",
+      technique: "Задняя нога на опоре. Корпус вертикально. Контроль колена.",
+      avg: "", max: "", comment: "", done: false
+    },
+    {
+      block: "Основная часть",
       name: "Ягодичный мост",
-      technique: "Поднимай таз за счёт ягодиц. Не переразгибай поясницу.",
-      avg: "",
-      max: "",
-      comment: "",
-      done: false
+      volume: "3×15",
+      zone: "Без зоны",
+      technique: "Подъём таза за счёт ягодиц. Поясница нейтральна.",
+      avg: "", max: "", comment: "", done: false
+    },
+    {
+      block: "Заминка",
+      name: "Растяжка квадрицепса",
+      volume: "2×30 сек",
+      zone: "Восстановление",
+      technique: "Пятка к ягодице. Таз слегка подкручен.",
+      avg: "", max: "", comment: "", done: false
     }
   ],
-  "Вт": [], "Ср": [], "Чт": [], "Пт": [], "Сб": [], "Вс": []
+  "Вт": [],
+  "Ср": [],
+  "Чт": [],
+  "Пт": [],
+  "Сб": [],
+  "Вс": []
 };
 
 function saveData() {
@@ -167,7 +196,6 @@ function renderWeek(screen) {
     screen.appendChild(card);
   });
 }
-
 function renderDay(screen) {
   document.getElementById("headerTitle").innerText = currentDay;
 
@@ -187,13 +215,27 @@ function renderDay(screen) {
     return;
   }
 
+  let currentBlock = "";
+
   exercises.forEach((ex, index) => {
+
+    if (ex.block !== currentBlock) {
+      currentBlock = ex.block;
+
+      const blockTitle = document.createElement("div");
+      blockTitle.style.margin = "18px 0 8px 4px";
+      blockTitle.style.fontWeight = "600";
+      blockTitle.style.opacity = "0.7";
+      blockTitle.innerText = currentBlock;
+      screen.appendChild(blockTitle);
+    }
+
     const card = document.createElement("div");
     card.className = "card";
     if (ex.done) card.classList.add("done");
 
     const btn = document.createElement("button");
-    btn.innerText = ex.name;
+    btn.innerText = ex.name + " • " + ex.volume + " • " + ex.zone;
     btn.onclick = () => {
       currentExercise = index;
       currentScreen = "exercise";
