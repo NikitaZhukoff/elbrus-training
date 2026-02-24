@@ -28,7 +28,6 @@ header {
   padding:18px;
   text-align:center;
   font-weight:600;
-  background:#0b1220;
   border-bottom:1px solid #1f2937;
 }
 
@@ -44,6 +43,12 @@ header {
   padding:16px;
   margin-bottom:14px;
   border-radius:14px;
+  border:1px solid transparent;
+  transition:0.2s ease;
+}
+
+.card.done {
+  border:1px solid #22c55e;
 }
 
 button {
@@ -54,7 +59,11 @@ button {
   border-radius:10px;
   color:white;
   font-size:15px;
-  margin-top:8px;
+  margin-top:10px;
+}
+
+button.done-btn {
+  background:#14532d;
 }
 
 .back-btn {
@@ -79,15 +88,13 @@ textarea {
 
 .exercise-img {
   width:100%;
-  height:140px;
+  height:160px;
   background:#1f2937;
   border-radius:12px;
   display:flex;
   align-items:center;
   justify-content:center;
   margin-bottom:12px;
-  font-size:13px;
-  color:#9ca3af;
 }
 </style>
 </head>
@@ -104,21 +111,31 @@ let currentScreen = "week";
 let currentDay = null;
 let currentExercise = null;
 
-const weekData = {
+let weekData = JSON.parse(localStorage.getItem("elbrusWeek1")) || {
   "Пн": [
     {
       name: "Степ-апы",
-      zone: "Z2",
-      technique: "Поставь стопу полностью на опору. Толкайся пяткой. Корпус ровный."
+      technique: "Стопа полностью на опоре. Толчок пяткой. Колено не заваливается внутрь.",
+      avg: "",
+      max: "",
+      comment: "",
+      done: false
     },
     {
       name: "Ягодичный мост",
-      zone: "Без зоны",
-      technique: "Лопатки на полу, поднимай таз за счёт ягодиц."
+      technique: "Поднимай таз за счёт ягодиц. Не переразгибай поясницу.",
+      avg: "",
+      max: "",
+      comment: "",
+      done: false
     }
   ],
   "Вт": [], "Ср": [], "Чт": [], "Пт": [], "Сб": [], "Вс": []
 };
+
+function saveData() {
+  localStorage.setItem("elbrusWeek1", JSON.stringify(weekData));
+}
 
 function render() {
   const screen = document.getElementById("screen");
@@ -171,6 +188,7 @@ function renderDay(screen) {
   exercises.forEach((ex, index) => {
     const card = document.createElement("div");
     card.className = "card";
+    if (ex.done) card.classList.add("done");
 
     const btn = document.createElement("button");
     btn.innerText = ex.name;
@@ -200,10 +218,16 @@ function renderExercise(screen) {
 
   const card = document.createElement("div");
   card.className = "card";
+  if (exercise.done) card.classList.add("done");
 
   const img = document.createElement("div");
   img.className = "exercise-img";
-  img.innerText = "Иллюстрация техники";
+  img.innerHTML = `
+  <svg width="120" height="120">
+    <rect x="40" y="70" width="40" height="10" fill="#6b7280"/>
+    <line x1="60" y1="70" x2="60" y2="40" stroke="#22c55e" stroke-width="4"/>
+    <circle cx="60" cy="30" r="8" fill="#22c55e"/>
+  </svg>`;
   card.appendChild(img);
 
   const tech = document.createElement("div");
@@ -216,6 +240,11 @@ function renderExercise(screen) {
   avg.inputMode = "numeric";
   avg.pattern = "[0-9]*";
   avg.placeholder = "Средний пульс";
+  avg.value = exercise.avg;
+  avg.oninput = (e) => {
+    exercise.avg = e.target.value;
+    saveData();
+  };
   card.appendChild(avg);
 
   const max = document.createElement("input");
@@ -223,12 +252,34 @@ function renderExercise(screen) {
   max.inputMode = "numeric";
   max.pattern = "[0-9]*";
   max.placeholder = "Максимальный пульс";
+  max.value = exercise.max;
+  max.oninput = (e) => {
+    exercise.max = e.target.value;
+    saveData();
+  };
   card.appendChild(max);
 
   const comment = document.createElement("textarea");
   comment.rows = 3;
   comment.placeholder = "Комментарий";
+  comment.value = exercise.comment;
+  comment.oninput = (e) => {
+    exercise.comment = e.target.value;
+    saveData();
+  };
   card.appendChild(comment);
+
+  const doneBtn = document.createElement("button");
+  doneBtn.innerText = exercise.done ? "Выполнено ✓" : "Отметить как выполнено";
+  if (exercise.done) doneBtn.classList.add("done-btn");
+
+  doneBtn.onclick = () => {
+    exercise.done = !exercise.done;
+    saveData();
+    render();
+  };
+
+  card.appendChild(doneBtn);
 
   screen.appendChild(card);
 }
