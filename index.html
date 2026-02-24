@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Elbrus Training</title>
-<link rel="manifest" href="manifest.json">
 <style>
 body {
   margin:0;
@@ -15,249 +14,221 @@ body {
 
 header {
   padding:20px;
-  font-size:20px;
+  font-size:18px;
   font-weight:600;
   text-align:center;
   letter-spacing:1px;
 }
 
-.card {
-  background:#111827;
-  margin:16px;
+.screen {
   padding:16px;
-  border-radius:16px;
 }
 
-select, input {
+.card {
+  background:#111827;
+  padding:16px;
+  margin-bottom:14px;
+  border-radius:14px;
+}
+
+button {
   width:100%;
-  padding:8px;
+  padding:12px;
+  background:#1f2937;
+  border:none;
+  border-radius:10px;
+  color:white;
+  font-size:15px;
+  margin-top:8px;
+}
+
+.back-btn {
+  margin-bottom:12px;
+  background:#374151;
+}
+
+input, textarea {
+  width:100%;
+  padding:10px;
   margin-top:6px;
   border-radius:8px;
   border:none;
   background:#1f2937;
   color:white;
+  font-size:14px;
 }
 
-button {
+textarea {
+  resize:none;
+}
+
+.exercise-img {
   width:100%;
-  background:#22c55e;
-  border:none;
-  padding:10px;
-  border-radius:10px;
-  font-weight:600;
-  margin-top:10px;
-}
-
-.ring-container {
+  height:140px;
+  background:#1f2937;
+  border-radius:12px;
   display:flex;
-  justify-content:center;
   align-items:center;
-  margin-top:10px;
-}
-
-svg {
-  transform:rotate(-90deg);
-}
-
-.ring-bg {
-  stroke:#1f2937;
-}
-
-.ring-progress {
-  stroke:#22c55e;
-  transition:stroke-dashoffset 0.4s ease;
-}
-
-.center-text {
-  position:absolute;
-  font-size:22px;
-  font-weight:600;
-}
-
-.status {
-  text-align:center;
-  margin-top:10px;
-  font-weight:600;
-  letter-spacing:1px;
-}
-
-.green { color:#22c55e; }
-.yellow { color:#facc15; }
-.red { color:#ef4444; }
-
-.small-info {
+  justify-content:center;
+  margin-bottom:10px;
   font-size:13px;
-  color:#94a3b8;
-  margin-top:6px;
+  color:#9ca3af;
 }
 </style>
 </head>
 <body>
 
-<header>ELBRUS SOUTH 2026</header>
+<header id="headerTitle">Неделя 1</header>
 
-<div class="card">
-<label>Неделя</label>
-<select id="weekSelector" onchange="changeWeek(this.value)"></select>
-<div class="small-info" id="weekInfo"></div>
-</div>
-
-<div class="card">
-<h3 style="text-align:center;">Индекс устойчивости</h3>
-<div class="ring-container">
-  <div style="position:relative;">
-    <svg width="160" height="160">
-      <circle cx="80" cy="80" r="70" stroke-width="12" fill="none" class="ring-bg"/>
-      <circle id="ringProgress" cx="80" cy="80" r="70"
-        stroke-width="12"
-        fill="none"
-        stroke-linecap="round"
-        class="ring-progress"
-        stroke-dasharray="440"
-        stroke-dashoffset="440"/>
-    </svg>
-    <div class="center-text" id="ringText">0%</div>
-  </div>
-</div>
-<div class="status" id="statusText"></div>
-</div>
-
-<div id="days"></div>
+<div id="app"></div>
 
 <script>
-const TOTAL_WEEKS = 27;
-const days = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 
-const Z2_MIN = 126;
-const Z2_MAX = 134;
-const Z3_MIN = 143;
-const Z3_MAX = 151;
+let currentScreen = "week";
+let currentDay = null;
+let currentExercise = null;
 
-let currentWeek = 1;
-let allData = JSON.parse(localStorage.getItem("elbrusData")) || {};
+const weekData = {
+  "Пн": [
+    {
+      name: "Степ-апы",
+      zone: "Z2",
+      technique: "Поставь стопу полностью на опору. Толкайся пяткой. Корпус ровный. Колено не заваливается внутрь."
+    },
+    {
+      name: "Ягодичный мост",
+      zone: "Без зоны",
+      technique: "Лопатки на полу, пятки ближе к тазу. Поднимай таз, напрягая ягодицы, без прогиба в пояснице."
+    }
+  ],
+  "Вт": [],
+  "Ср": [],
+  "Чт": [],
+  "Пт": [],
+  "Сб": [],
+  "Вс": []
+};
 
-function getWeekTarget(week){
-  if(week<=9) return {weight:5,long:"3:00"};
-  if(week<=15) return {weight:6,long:"3:30"};
-  if(week<=19) return {weight:7,long:"4:00"};
-  if(week<=23) return {weight:8,long:"4:30"};
-  if(week<=25) return {weight:9,long:"5:00"};
-  if(week==26) return {weight:9,long:"6:30"};
-  return {weight:6,long:"3:00"};
-}
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
 
-function getWeekData(week){
-  if(!allData[week]){
-    allData[week] = days.map(()=>({done:false, avg:0}));
+  if (currentScreen === "week") {
+    renderWeek(app);
   }
-  return allData[week];
+
+  if (currentScreen === "day") {
+    renderDay(app);
+  }
+
+  if (currentScreen === "exercise") {
+    renderExercise(app);
+  }
 }
 
-function pulseScore(i,p){
-  if(p===0) return 0;
-  if(i===3 && p>=Z3_MIN && p<=Z3_MAX) return 100;
-  if(i!==3 && p>=Z2_MIN && p<=Z2_MAX) return 100;
-  return 50;
-}
+function renderWeek(app) {
+  document.getElementById("headerTitle").innerText = "Неделя 1";
 
-function weekIndex(week){
-  let data = getWeekData(week);
-  let sum = 0;
-  let longDone = 0;
+  Object.keys(weekData).forEach(day => {
+    const card = document.createElement("div");
+    card.className = "card";
 
-  data.forEach((d,i)=>{
-    let s = 0;
-    if(d.done) s+=50;
-    s += pulseScore(i,d.avg)*0.3;
-    if(i===5 && d.done) longDone=1;
-    sum+=s;
+    const btn = document.createElement("button");
+    btn.innerText = day;
+    btn.onclick = () => {
+      currentDay = day;
+      currentScreen = "day";
+      render();
+    };
+
+    card.appendChild(btn);
+    app.appendChild(card);
   });
-
-  let base = Math.round(sum/7);
-  if(longDone) base+=5;
-  return Math.min(base,100);
 }
 
-function avg4(){
-  let start = Math.max(1,currentWeek-3);
-  let total=0,count=0;
-  for(let w=start;w<=currentWeek;w++){
-    total+=weekIndex(w);
-    count++;
+function renderDay(app) {
+  document.getElementById("headerTitle").innerText = currentDay;
+
+  const back = document.createElement("button");
+  back.className = "back-btn";
+  back.innerText = "← Назад";
+  back.onclick = () => {
+    currentScreen = "week";
+    render();
+  };
+  app.appendChild(back);
+
+  const exercises = weekData[currentDay];
+
+  if (exercises.length === 0) {
+    app.innerHTML += "<div class='card'>День пока не заполнен</div>";
+    return;
   }
-  return Math.round(total/count);
-}
 
-function render(){
-  let data = getWeekData(currentWeek);
-  let container=document.getElementById("days");
-  container.innerHTML="";
+  exercises.forEach((ex, index) => {
+    const card = document.createElement("div");
+    card.className = "card";
 
-  let target=getWeekTarget(currentWeek);
-  document.getElementById("weekInfo").innerText=
-    "Целевой вес: "+target.weight+" кг | Длительный: "+target.long+" ч";
+    const btn = document.createElement("button");
+    btn.innerText = ex.name;
+    btn.onclick = () => {
+      currentExercise = index;
+      currentScreen = "exercise";
+      render();
+    };
 
-  data.forEach((d,i)=>{
-    container.innerHTML+=`
-      <div class="card">
-        <strong>${days[i]}</strong>
-        <input type="number" placeholder="Средний пульс"
-          value="${d.avg||""}" onchange="update(${i},this.value)">
-        <button onclick="toggle(${i})">${d.done?"Выполнено":"Отметить"}</button>
-      </div>`;
+    card.appendChild(btn);
+    app.appendChild(card);
   });
-
-  let value=avg4();
-  let offset=440 - (440*value/100);
-
-  let ring=document.getElementById("ringProgress");
-  ring.style.strokeDashoffset=offset;
-
-  let color="#22c55e";
-  let status="ГОТОВ";
-
-  if(value<85){color="#facc15"; status="БЛИЗКО";}
-  if(value<75){color="#ef4444"; status="НУЖНА СТАБИЛЬНОСТЬ";}
-
-  ring.style.stroke=color;
-  document.getElementById("ringText").innerText=value+"%";
-  let st=document.getElementById("statusText");
-  st.innerText=status;
-  st.className="status "+(value>=85?"green":value>=75?"yellow":"red");
 }
 
-function update(i,val){
-  let data=getWeekData(currentWeek);
-  data[i].avg=Number(val);
-  localStorage.setItem("elbrusData",JSON.stringify(allData));
-  render();
+function renderExercise(app) {
+  const exercise = weekData[currentDay][currentExercise];
+
+  document.getElementById("headerTitle").innerText = exercise.name;
+
+  const back = document.createElement("button");
+  back.className = "back-btn";
+  back.innerText = "← Назад";
+  back.onclick = () => {
+    currentScreen = "day";
+    render();
+  };
+  app.appendChild(back);
+
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const img = document.createElement("div");
+  img.className = "exercise-img";
+  img.innerText = "Иллюстрация техники";
+  card.appendChild(img);
+
+  const tech = document.createElement("div");
+  tech.innerText = exercise.technique;
+  tech.style.marginBottom = "12px";
+  card.appendChild(tech);
+
+  const avg = document.createElement("input");
+  avg.type = "number";
+  avg.placeholder = "Средний пульс";
+  card.appendChild(avg);
+
+  const max = document.createElement("input");
+  max.type = "number";
+  max.placeholder = "Максимальный пульс";
+  card.appendChild(max);
+
+  const comment = document.createElement("textarea");
+  comment.rows = 3;
+  comment.placeholder = "Комментарий";
+  card.appendChild(comment);
+
+  app.appendChild(card);
 }
 
-function toggle(i){
-  let data=getWeekData(currentWeek);
-  data[i].done=!data[i].done;
-  localStorage.setItem("elbrusData",JSON.stringify(allData));
-  render();
-}
+render();
 
-function changeWeek(w){
-  currentWeek=Number(w);
-  render();
-}
-
-function init(){
-  let sel=document.getElementById("weekSelector");
-  for(let i=1;i<=TOTAL_WEEKS;i++){
-    let opt=document.createElement("option");
-    opt.value=i;
-    opt.text="Неделя "+i;
-    sel.appendChild(opt);
-  }
-  sel.value=1;
-  render();
-}
-
-init();
 </script>
 
 </body>
