@@ -246,7 +246,6 @@ function renderDay(screen) {
     screen.appendChild(card);
   });
 }
-
 function renderExercise(screen) {
   const exercise = weekData[currentDay][currentExercise];
   document.getElementById("headerTitle").innerText = exercise.name;
@@ -264,21 +263,40 @@ function renderExercise(screen) {
   card.className = "card";
   if (exercise.done) card.classList.add("done");
 
+  // ===== Верхняя информация =====
+  const meta = document.createElement("div");
+  meta.style.marginBottom = "12px";
+  meta.style.opacity = "0.7";
+  meta.innerText = exercise.block + " • " + exercise.volume + " • " + exercise.zone;
+  card.appendChild(meta);
+
+  // ===== SVG =====
   const img = document.createElement("div");
   img.className = "exercise-img";
-  img.innerHTML = `
-  <svg width="120" height="120">
-    <rect x="40" y="70" width="40" height="10" fill="#6b7280"/>
-    <line x1="60" y1="70" x2="60" y2="40" stroke="#22c55e" stroke-width="4"/>
-    <circle cx="60" cy="30" r="8" fill="#22c55e"/>
-  </svg>`;
+
+  if (exercise.name.includes("Степ")) {
+    img.innerHTML = `
+    <svg width="120" height="120">
+      <rect x="40" y="70" width="40" height="10" fill="#6b7280"/>
+      <line x1="60" y1="70" x2="60" y2="40" stroke="#22c55e" stroke-width="4"/>
+      <circle cx="60" cy="30" r="8" fill="#22c55e"/>
+    </svg>`;
+  } else {
+    img.innerHTML = `
+    <svg width="120" height="120">
+      <circle cx="60" cy="60" r="30" stroke="#22c55e" stroke-width="4" fill="none"/>
+    </svg>`;
+  }
+
   card.appendChild(img);
 
+  // ===== Техника =====
   const tech = document.createElement("div");
   tech.innerText = exercise.technique;
-  tech.style.marginBottom = "12px";
+  tech.style.marginBottom = "16px";
   card.appendChild(tech);
 
+  // ===== Пульс =====
   const avg = document.createElement("input");
   avg.type = "text";
   avg.inputMode = "numeric";
@@ -303,19 +321,35 @@ function renderExercise(screen) {
   };
   card.appendChild(max);
 
+  // ===== Комментарий =====
   const comment = document.createElement("textarea");
-comment.placeholder = "Комментарий";
-comment.value = exercise.comment;
+  comment.placeholder = "Комментарий";
+  comment.value = exercise.comment;
+  comment.oninput = (e) => {
+    exercise.comment = e.target.value;
+    saveData();
+    autoResize(e.target);
+  };
+  card.appendChild(comment);
 
-comment.oninput = (e) => {
-  exercise.comment = e.target.value;
-  saveData();
-  autoResize(e.target);
-};
+  setTimeout(() => autoResize(comment), 0);
 
-card.appendChild(comment);
+  // ===== Кнопка =====
+  const doneBtn = document.createElement("button");
+  doneBtn.innerText = exercise.done ? "Выполнено ✓" : "Отметить как выполнено";
+  if (exercise.done) doneBtn.classList.add("done-btn");
 
-setTimeout(() => autoResize(comment), 0);
+  doneBtn.onclick = () => {
+    exercise.done = !exercise.done;
+    saveData();
+    render();
+  };
+
+  card.appendChild(doneBtn);
+
+  screen.appendChild(card);
+}
+
   function autoResize(el) {
   el.style.height = "auto";
   el.style.height = el.scrollHeight + "px";
