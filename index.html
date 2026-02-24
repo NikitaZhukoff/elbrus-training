@@ -251,6 +251,38 @@ function renderDay(screen) {
     return;
   }
 
+  // ===== ПРОГРЕСС =====
+  const total = exercises.length;
+  const completed = exercises.filter(e => e.done).length;
+  const percent = Math.round((completed / total) * 100);
+
+  const progressCard = document.createElement("div");
+  progressCard.className = "card";
+
+  const progressText = document.createElement("div");
+  progressText.style.marginBottom = "10px";
+  progressText.style.fontWeight = "600";
+  progressText.innerText = `Прогресс: ${completed} / ${total} (${percent}%)`;
+  progressCard.appendChild(progressText);
+
+  const progressBar = document.createElement("div");
+  progressBar.style.height = "8px";
+  progressBar.style.background = "#1f2937";
+  progressBar.style.borderRadius = "6px";
+  progressBar.style.overflow = "hidden";
+
+  const progressFill = document.createElement("div");
+  progressFill.style.height = "100%";
+  progressFill.style.width = percent + "%";
+  progressFill.style.background = "#22c55e";
+  progressFill.style.transition = "0.3s ease";
+
+  progressBar.appendChild(progressFill);
+  progressCard.appendChild(progressBar);
+
+  screen.appendChild(progressCard);
+
+  // ===== БЛОКИ =====
   let currentBlock = "";
 
   exercises.forEach((ex, index) => {
