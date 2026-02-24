@@ -114,13 +114,14 @@ let currentDay = null;
 let currentExercise = null;
 localStorage.removeItem("elbrusWeek1");
 let weekData = JSON.parse(localStorage.getItem("elbrusWeek1")) || {
+
   "Пн": [
     {
       block: "Разминка",
       name: "Суставная мобилизация",
       volume: "5–7 мин",
       zone: "Без зоны",
-      technique: "Круговые движения голеностоп, колено, таз, плечи. Без рывков.",
+      technique: "Круговые движения: голеностоп, колено, таз, плечи. Без рывков.",
       avg: "", max: "", comment: "", done: false
     },
     {
@@ -148,6 +149,14 @@ let weekData = JSON.parse(localStorage.getItem("elbrusWeek1")) || {
       avg: "", max: "", comment: "", done: false
     },
     {
+      block: "Основная часть",
+      name: "Планка",
+      volume: "3×40 сек",
+      zone: "Без зоны",
+      technique: "Корпус прямой. Таз не проваливается. Шея нейтральна.",
+      avg: "", max: "", comment: "", done: false
+    },
+    {
       block: "Заминка",
       name: "Растяжка квадрицепса",
       volume: "2×30 сек",
@@ -156,7 +165,34 @@ let weekData = JSON.parse(localStorage.getItem("elbrusWeek1")) || {
       avg: "", max: "", comment: "", done: false
     }
   ],
-  "Вт": [],
+
+  "Вт": [
+    {
+      block: "Разминка",
+      name: "Мобилизация + легкая ходьба",
+      volume: "5–7 мин",
+      zone: "Z1",
+      technique: "Постепенный разогрев, без ускорений.",
+      avg: "", max: "", comment: "", done: false
+    },
+    {
+      block: "Основная часть",
+      name: "Ходьба / подъем",
+      volume: "1 ч 20 мин",
+      zone: "Z2",
+      technique: "Ровный темп. Дыхание контролируемое. Возможность разговаривать.",
+      avg: "", max: "", comment: "", done: false
+    },
+    {
+      block: "Заминка",
+      name: "Легкая растяжка",
+      volume: "5–7 мин",
+      zone: "Восстановление",
+      technique: "Статическая растяжка икр, квадрицепсов, ягодичных.",
+      avg: "", max: "", comment: "", done: false
+    }
+  ],
+
   "Ср": [],
   "Чт": [],
   "Пт": [],
