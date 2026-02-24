@@ -217,11 +217,17 @@ function renderWeek(screen) {
   document.getElementById("headerTitle").innerText = "Неделя 1";
 
   Object.keys(weekData).forEach(day => {
+
+    const exercises = weekData[day];
+    const total = exercises.length;
+    const completed = exercises.filter(e => e.done).length;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
     const card = document.createElement("div");
     card.className = "card";
 
     const btn = document.createElement("button");
-    btn.innerText = day;
+    btn.innerText = `${day}   ${percent}%`;
     btn.onclick = () => {
       currentDay = day;
       currentScreen = "day";
@@ -229,6 +235,25 @@ function renderWeek(screen) {
     };
 
     card.appendChild(btn);
+
+    if (total > 0) {
+      const progressBar = document.createElement("div");
+      progressBar.style.height = "6px";
+      progressBar.style.background = "#1f2937";
+      progressBar.style.borderRadius = "4px";
+      progressBar.style.marginTop = "10px";
+      progressBar.style.overflow = "hidden";
+
+      const progressFill = document.createElement("div");
+      progressFill.style.height = "100%";
+      progressFill.style.width = percent + "%";
+      progressFill.style.background = "#22c55e";
+      progressFill.style.transition = "0.3s ease";
+
+      progressBar.appendChild(progressFill);
+      card.appendChild(progressBar);
+    }
+
     screen.appendChild(card);
   });
 }
