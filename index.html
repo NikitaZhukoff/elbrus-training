@@ -6,47 +6,125 @@
 <title>Elbrus Training</title>
 <link rel="manifest" href="manifest.json">
 <style>
-body { margin:0; font-family:Arial; background:#0f172a; color:white; }
-header { padding:16px; font-size:20px; font-weight:bold; text-align:center; }
-.card { background:#1e293b; margin:12px; padding:14px; border-radius:14px; }
-select, input { width:100%; padding:6px; margin-top:6px; border-radius:6px; border:none; }
-button { background:#22c55e; border:none; padding:8px 12px; border-radius:8px; color:black; font-weight:bold; margin-top:8px;}
-.progress { height:12px; background:#334155; border-radius:6px; margin-top:10px; }
-.bar { height:12px; border-radius:6px; width:0%; transition:0.3s; }
-.status { font-size:16px; font-weight:bold; margin-top:10px; }
+body {
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#0b1220;
+  color:white;
+}
+
+header {
+  padding:20px;
+  font-size:20px;
+  font-weight:600;
+  text-align:center;
+  letter-spacing:1px;
+}
+
+.card {
+  background:#111827;
+  margin:16px;
+  padding:16px;
+  border-radius:16px;
+}
+
+select, input {
+  width:100%;
+  padding:8px;
+  margin-top:6px;
+  border-radius:8px;
+  border:none;
+  background:#1f2937;
+  color:white;
+}
+
+button {
+  width:100%;
+  background:#22c55e;
+  border:none;
+  padding:10px;
+  border-radius:10px;
+  font-weight:600;
+  margin-top:10px;
+}
+
+.ring-container {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin-top:10px;
+}
+
+svg {
+  transform:rotate(-90deg);
+}
+
+.ring-bg {
+  stroke:#1f2937;
+}
+
+.ring-progress {
+  stroke:#22c55e;
+  transition:stroke-dashoffset 0.4s ease;
+}
+
+.center-text {
+  position:absolute;
+  font-size:22px;
+  font-weight:600;
+}
+
+.status {
+  text-align:center;
+  margin-top:10px;
+  font-weight:600;
+  letter-spacing:1px;
+}
+
 .green { color:#22c55e; }
 .yellow { color:#facc15; }
 .red { color:#ef4444; }
-.info { font-size:14px; margin-top:6px; color:#94a3b8; }
+
+.small-info {
+  font-size:13px;
+  color:#94a3b8;
+  margin-top:6px;
+}
 </style>
 </head>
 <body>
 
-<header>Elbrus South 2026</header>
+<header>ELBRUS SOUTH 2026</header>
 
 <div class="card">
 <label>Неделя</label>
 <select id="weekSelector" onchange="changeWeek(this.value)"></select>
-<div class="info" id="weekInfo"></div>
+<div class="small-info" id="weekInfo"></div>
 </div>
 
 <div class="card">
-<h3>Индекс недели</h3>
-<p id="weekIndex">0%</p>
-<div class="progress"><div class="bar" id="barWeek"></div></div>
+<h3 style="text-align:center;">Индекс устойчивости</h3>
+<div class="ring-container">
+  <div style="position:relative;">
+    <svg width="160" height="160">
+      <circle cx="80" cy="80" r="70" stroke-width="12" fill="none" class="ring-bg"/>
+      <circle id="ringProgress" cx="80" cy="80" r="70"
+        stroke-width="12"
+        fill="none"
+        stroke-linecap="round"
+        class="ring-progress"
+        stroke-dasharray="440"
+        stroke-dashoffset="440"/>
+    </svg>
+    <div class="center-text" id="ringText">0%</div>
+  </div>
 </div>
-
-<div class="card">
-<h3>Среднее 4 недели</h3>
-<p id="avgIndex">0%</p>
-<div class="progress"><div class="bar" id="barAvg"></div></div>
 <div class="status" id="statusText"></div>
 </div>
 
 <div id="days"></div>
 
 <script>
-
 const TOTAL_WEEKS = 27;
 const days = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 
@@ -56,171 +134,130 @@ const Z3_MIN = 143;
 const Z3_MAX = 151;
 
 let currentWeek = 1;
+let allData = JSON.parse(localStorage.getItem("elbrusData")) || {};
 
 function getWeekTarget(week){
-  let weight = 5;
-  let longDuration = "3:00";
-
-  if(week <= 9){ weight = 5; longDuration="3:00";}
-  else if(week <= 15){ weight = 6; longDuration="3:30";}
-  else if(week <= 19){ weight = 7; longDuration="4:00";}
-  else if(week <= 23){ weight = 8; longDuration="4:30";}
-  else if(week <= 25){ weight = 9; longDuration="5:00";}
-  else if(week == 26){ weight = 9; longDuration="6:30";}
-  else { weight = 6; longDuration="3:00"; }
-
-  return {weight,longDuration};
+  if(week<=9) return {weight:5,long:"3:00"};
+  if(week<=15) return {weight:6,long:"3:30"};
+  if(week<=19) return {weight:7,long:"4:00"};
+  if(week<=23) return {weight:8,long:"4:30"};
+  if(week<=25) return {weight:9,long:"5:00"};
+  if(week==26) return {weight:9,long:"6:30"};
+  return {weight:6,long:"3:00"};
 }
-
-function saveData(){
-  localStorage.setItem("elbrusData", JSON.stringify(allData));
-}
-
-function loadData(){
-  return JSON.parse(localStorage.getItem("elbrusData")) || {};
-}
-
-let allData = loadData();
 
 function getWeekData(week){
   if(!allData[week]){
-    allData[week] = days.map(()=>({done:false, avg:0, max:0, weight:0}));
+    allData[week] = days.map(()=>({done:false, avg:0}));
   }
   return allData[week];
 }
 
-function pulseScore(dayIndex, avgPulse){
-  if(avgPulse === 0) return 0;
-
-  if(dayIndex === 3){
-    if(avgPulse >= Z3_MIN && avgPulse <= Z3_MAX) return 100;
-  } else {
-    if(avgPulse >= Z2_MIN && avgPulse <= Z2_MAX) return 100;
-  }
-
+function pulseScore(i,p){
+  if(p===0) return 0;
+  if(i===3 && p>=Z3_MIN && p<=Z3_MAX) return 100;
+  if(i!==3 && p>=Z2_MIN && p<=Z2_MAX) return 100;
   return 50;
 }
 
-function calculateWeekIndex(week){
+function weekIndex(week){
   let data = getWeekData(week);
-  let total = 0;
+  let sum = 0;
   let longDone = 0;
 
   data.forEach((d,i)=>{
-    let score = 0;
-
-    if(d.done) score += 50;
-    score += pulseScore(i, d.avg) * 0.3;
-
-    if(i === 5 && d.done) longDone = 1;
-
-    total += score;
+    let s = 0;
+    if(d.done) s+=50;
+    s += pulseScore(i,d.avg)*0.3;
+    if(i===5 && d.done) longDone=1;
+    sum+=s;
   });
 
-  let base = Math.round(total / 7);
-  if(longDone) base += 5;
-
+  let base = Math.round(sum/7);
+  if(longDone) base+=5;
   return Math.min(base,100);
 }
 
-function calculate4WeekAverage(){
-  let start = Math.max(1, currentWeek - 3);
-  let sum = 0;
-  let count = 0;
-
-  for(let w=start; w<=currentWeek; w++){
-    sum += calculateWeekIndex(w);
+function avg4(){
+  let start = Math.max(1,currentWeek-3);
+  let total=0,count=0;
+  for(let w=start;w<=currentWeek;w++){
+    total+=weekIndex(w);
     count++;
   }
-
-  return Math.round(sum / count);
+  return Math.round(total/count);
 }
 
 function render(){
   let data = getWeekData(currentWeek);
-  let container = document.getElementById("days");
-  container.innerHTML = "";
+  let container=document.getElementById("days");
+  container.innerHTML="";
 
-  let target = getWeekTarget(currentWeek);
-  document.getElementById("weekInfo").innerText =
-    "Целевой вес: " + target.weight + " кг | Длительный: " + target.longDuration + " ч";
+  let target=getWeekTarget(currentWeek);
+  document.getElementById("weekInfo").innerText=
+    "Целевой вес: "+target.weight+" кг | Длительный: "+target.long+" ч";
 
   data.forEach((d,i)=>{
-    container.innerHTML += `
-    <div class="card">
-      <strong>${days[i]}</strong>
-      <label>Средний пульс</label>
-      <input type="number" value="${d.avg}" onchange="update(${i},'avg',this.value)">
-      <label>Макс пульс</label>
-      <input type="number" value="${d.max}" onchange="update(${i},'max',this.value)">
-      <label>Фактический вес рюкзака</label>
-      <input type="number" value="${d.weight}" onchange="update(${i},'weight',this.value)">
-      <button onclick="toggle(${i})">${d.done?'Выполнено':'Отметить'}</button>
-    </div>`;
+    container.innerHTML+=`
+      <div class="card">
+        <strong>${days[i]}</strong>
+        <input type="number" placeholder="Средний пульс"
+          value="${d.avg||""}" onchange="update(${i},this.value)">
+        <button onclick="toggle(${i})">${d.done?"Выполнено":"Отметить"}</button>
+      </div>`;
   });
 
-  let weekIndex = calculateWeekIndex(currentWeek);
-  document.getElementById("weekIndex").innerText = weekIndex + "%";
-  document.getElementById("barWeek").style.width = weekIndex + "%";
+  let value=avg4();
+  let offset=440 - (440*value/100);
 
-  let avgIndex = calculate4WeekAverage();
-  document.getElementById("avgIndex").innerText = avgIndex + "%";
-  document.getElementById("barAvg").style.width = avgIndex + "%";
+  let ring=document.getElementById("ringProgress");
+  ring.style.strokeDashoffset=offset;
 
-  let status = document.getElementById("statusText");
+  let color="#22c55e";
+  let status="ГОТОВ";
 
-  if(avgIndex >= 85){
-    document.getElementById("barAvg").style.background = "#22c55e";
-    status.innerText = "ГОТОВ К НАГРУЗКЕ";
-    status.className = "status green";
-  } else if(avgIndex >= 75){
-    document.getElementById("barAvg").style.background = "#facc15";
-    status.innerText = "БЛИЗКО К ГОТОВНОСТИ";
-    status.className = "status yellow";
-  } else {
-    document.getElementById("barAvg").style.background = "#ef4444";
-    status.innerText = "ТРЕБУЕТСЯ СТАБИЛЬНОСТЬ";
-    status.className = "status red";
-  }
+  if(value<85){color="#facc15"; status="БЛИЗКО";}
+  if(value<75){color="#ef4444"; status="НУЖНА СТАБИЛЬНОСТЬ";}
+
+  ring.style.stroke=color;
+  document.getElementById("ringText").innerText=value+"%";
+  let st=document.getElementById("statusText");
+  st.innerText=status;
+  st.className="status "+(value>=85?"green":value>=75?"yellow":"red");
 }
 
-function update(i,key,value){
-  let data = getWeekData(currentWeek);
-  data[i][key] = Number(value);
-  saveData();
+function update(i,val){
+  let data=getWeekData(currentWeek);
+  data[i].avg=Number(val);
+  localStorage.setItem("elbrusData",JSON.stringify(allData));
   render();
 }
 
 function toggle(i){
-  let data = getWeekData(currentWeek);
-  data[i].done = !data[i].done;
-  saveData();
+  let data=getWeekData(currentWeek);
+  data[i].done=!data[i].done;
+  localStorage.setItem("elbrusData",JSON.stringify(allData));
   render();
 }
 
-function changeWeek(week){
-  currentWeek = Number(week);
+function changeWeek(w){
+  currentWeek=Number(w);
   render();
 }
 
 function init(){
-  let selector = document.getElementById("weekSelector");
+  let sel=document.getElementById("weekSelector");
   for(let i=1;i<=TOTAL_WEEKS;i++){
-    let option = document.createElement("option");
-    option.value = i;
-    option.text = "Неделя " + i;
-    selector.appendChild(option);
+    let opt=document.createElement("option");
+    opt.value=i;
+    opt.text="Неделя "+i;
+    sel.appendChild(opt);
   }
-  selector.value = currentWeek;
+  sel.value=1;
   render();
 }
 
 init();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
-
 </script>
 
 </body>
